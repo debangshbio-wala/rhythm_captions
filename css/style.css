@@ -247,24 +247,6 @@ select:focus, textarea:focus { border-color: var(--mid); }
     margin: 0 auto 10px;
 }
 
-.render-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-.render-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--white);
-    animation: pulse 1s infinite;
-}
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.25; }
-}
-
 .toggle-row {
     display: flex;
     align-items: center;
@@ -315,8 +297,80 @@ select:focus, textarea:focus { border-color: var(--mid); }
 
 .hidden { display: none !important; }
 
+/* ==================== IMPROVED FOOTER ==================== */
+footer {
+    width: 100%;
+    max-width: 520px;
+    text-align: center;
+    margin-top: 20px;
+    padding: 20px 0;
+}
+
+.dev-line {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.contact-block {
+    display: inline-block;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    background: rgba(255, 255, 255, 0.03);
+    cursor: pointer;
+    transition: all var(--transition);
+    max-width: 100%;
+}
+
+.contact-block:hover {
+    border-color: var(--mid);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.contact-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.contact-line {
+    font-size: 0.82rem;
+    color: var(--light);
+}
+
+.contact-reveal {
+    margin-top: 10px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.contact-block.expanded .contact-reveal {
+    opacity: 1;
+}
+
+.contact-reveal a {
+    color: #e1306c;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 6px 16px;
+    border: 1px solid rgba(225, 48, 108, 0.4);
+    border-radius: var(--radius-pill);
+    display: inline-block;
+}
+
+.support-text {
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: 12px;
+    font-style: italic;
+}
+
 @media (max-width: 480px) {
-    .card { padding: 20px 14px; }
-    header h1 { font-size: 2.4rem; }
-    .preview-box canvas { max-width: 260px; }
-        }
+    footer { padding: 15px 0; }
+    .contact-block { padding: 12px 16px; }
+                                                         }
