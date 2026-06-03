@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Rhythm Captions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -11,44 +12,95 @@
     <div class="card">
         <header>
             <h1>RHYTHM <span>CAPTIONS</span></h1>
-            <p>Upload a song — AI detects full lyrics & syncs to beat</p>
+            <p>Upload a song &mdash; AI detects full lyrics &amp; syncs to the beat</p>
         </header>
 
-        <div class="step-block">
-            <label>Deepgram API Key</label>
-            <div class="input-row">
-                <input type="password" id="apiKeyInput" placeholder="Enter your Deepgram key">
-                <button id="btnToggleKey">👁</button>
-            </div>
-        </div>
-
-        <div class="drop-zone" id="dropZone">
-            <p>🎵 Tap to upload song</p>
-            <small>MP3, M4A, WAV etc.</small>
-        </div>
-
-        <div id="controlsCard" class="hidden">
-            <div style="background:#222; padding:10px; border-radius:12px; margin:10px 0;">
-                <span id="fileInfo">file.mp3</span>
-                <button id="btnReset" style="float:right; background:none; border:none; color:red;">×</button>
+        <main>
+            <!-- API Key -->
+            <div class="step-block">
+                <label for="apiKeyInput">Deepgram API Key <span class="tag">free — console.deepgram.com</span></label>
+                <div class="input-row">
+                    <input type="password" id="apiKeyInput" placeholder="Token xxxxxxxxxxxxxxxx" autocomplete="off">
+                    <button class="btn btn-ghost" id="btnToggleKey">👁</button>
+                </div>
+                <p class="hint">Key stays in your browser only.</p>
             </div>
 
-            <button class="btn btn-primary" id="btnTranscribe" style="width:100%; margin:15px 0;">
-                Detect Lyrics with AI
-            </button>
-        </div>
+            <hr class="divider">
 
-        <div id="lyricsPreviewBlock" class="hidden">
-            <textarea id="lyricsEditor" rows="5" placeholder="Lyrics will appear here..."></textarea>
-            <div style="display:flex; gap:10px; margin-top:10px;">
-                <button class="btn btn-secondary" id="btnPreview">Preview</button>
-                <button class="btn btn-primary" id="btnRender">Generate Video</button>
+            <!-- Upload -->
+            <div class="drop-zone" id="dropZone">
+                <input type="file" id="audioUpload" accept="audio/*" hidden>
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 18V5l12-2v13"/>
+                    <circle cx="6" cy="18" r="3"/>
+                    <circle cx="18" cy="16" r="3"/>
+                </svg>
+                <p>Tap to upload song</p>
+                <small>MP3 / AAC / OGG / M4A / WAV</small>
             </div>
-        </div>
 
-        <div id="previewBox" class="hidden">
-            <canvas id="videoCanvas" width="540" height="960" style="width:100%; max-width:300px; border-radius:12px; background:black;"></canvas>
-        </div>
+            <!-- Controls -->
+            <div class="hidden" id="controlsCard">
+                <div class="file-badge">
+                    <span id="fileInfo">song.mp3</span>
+                    <button id="btnReset" class="btn-close">×</button>
+                </div>
+
+                <div class="settings-grid">
+                    <div>
+                        <label for="songLang">Language</label>
+                        <select id="songLang">
+                            <option value="hinglish">Hinglish</option>
+                            <option value="hi">Hindi</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="bgType">Background</label>
+                        <select id="bgType">
+                            <option value="green">Green Screen</option>
+                            <option value="black">Black</option>
+                            <option value="transparent">Transparent</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="captionStyle">Caption Style</label>
+                        <select id="captionStyle">
+                            <option value="word">Word Pop</option>
+                            <option value="bounce">Bounce</option>
+                            <option value="karaoke">Karaoke</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="progress-wrap" id="progressWrap">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <p class="hint" id="progressLabel"></p>
+
+                <button class="btn btn-primary full" id="btnTranscribe">
+                    <span id="transcribeBtnLabel">Detect Lyrics with AI</span>
+                </button>
+            </div>
+
+            <!-- Lyrics -->
+            <div class="hidden" id="lyricsPreviewBlock">
+                <hr class="divider">
+                <label>Detected Lyrics</label>
+                <textarea id="lyricsEditor" rows="5"></textarea>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="btnPreview">Preview</button>
+                    <button class="btn btn-primary" id="btnRender">Generate Video</button>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div class="preview-box hidden" id="previewBox">
+                <canvas id="videoCanvas" width="540" height="960"></canvas>
+                <p id="renderStatus" style="text-align:center; margin-top:8px;">Recording...</p>
+            </div>
+        </main>
     </div>
 
     <script src="js/app.js"></script>
