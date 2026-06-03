@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Panel - Rhythm Captions</title>
+    <style>
+        body { background:#0a0a0a; color:#f0f0f0; font-family:monospace; padding:20px; }
+        table { width:100%; border-collapse:collapse; margin-top:20px; }
+        th, td { border:1px solid #333; padding:8px; text-align:left; }
+        th { background:#222; }
+        button { background:#e1306c; color:white; border:none; padding:5px 10px; cursor:pointer; border-radius:4px; }
+        button:disabled { opacity:0.5; cursor:not-allowed; }
+    </style>
+</head>
+<body>
+    <h1>User Management</h1>
+    <table id="userTable">
+        <thead>
+            <tr>
+                <th>Name</th><th>Phone</th><th>DOB</th><th>Status</th><th>Blocked</th><th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <script>
+        let adminPassword = sessionStorage.getItem('admin_pass');
+        if (!adminPassword) {
+            adminPassword = prompt('Enter admin password:');
+            if (!adminPassword) {
+                alert('Password required.');
+                window.location.href = '/';
+            }
+            sessionStorage.setItem('admin_pass', adminPassword);
+        }
+
+        async function loadUsers() {
+            try {
+                const res = await fetch('/api/admin/users', {
+                    headers: { 'Authorization': 'Basic ' + btoa('admin:' + adminPassword) }
+                });
+                if (!res.ok) throw new Error('Failed');
+                const users = await res.json();
+                const tbody = document.querySelector('#userTable tbody');
+                tbody.innerHTML = '';
+                users.forEach(u => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${u.name}</td>
+                        <td>${u.phone}</td>
+                        <td>${u.dob}</td>
+                        <td>${u.workStatus}</td>
+                        <td>${u.blocked ? '❌' : '✅'}</td>
+                        <td>
+                            <button onclick="blockUser('${u.id}')" ${u.blocked ? 'disabled' : ''}>
+                                ${u.blocked ? 'Blocked' : 'Block'}
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                alert('Failed to load users. Maybe wrong password?');
+            }
+        }
+
+        async function blockUser(id) {
+            if (!confirm('Block this user?')) return;
+            try {
+                await fetch(`/api/admin/block/${id}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Basic ' + btoa('admin:' + adminPassword) }
+                });
+                loadUsers();
+            } catch (err) {
+                alert('Error blocking user.');
+            }
+        }
+
+        loadUsers();
+    </script>
+</body>
+</html>
