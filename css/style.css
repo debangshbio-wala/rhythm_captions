@@ -1,4 +1,4 @@
-:root {
+    :root {
       --bg:       #050508;
       --surface:  #0d0d14;
       --card:     #12121c;
@@ -521,6 +521,49 @@
     .ig-pill:hover .ig-layer.back  { transform: translateY(0); }
     .ig-link { text-decoration: none; }
 
+    /* ── LANGUAGE SELECTOR ── */
+    .lang-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .lang-btn {
+      padding: 12px 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(0,0,0,.35);
+      transition: border-color .2s, background .2s, transform .15s;
+    }
+    .lang-btn:hover {
+      border-color: rgba(255,255,255,.18);
+      transform: translateY(-1px);
+    }
+    .lang-btn.active {
+      border-color: var(--accent);
+      background: rgba(200,245,96,.07);
+      box-shadow: 0 0 16px rgba(200,245,96,.08);
+    }
+    .lang-icon {
+      font-size: .55rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .lang-btn.active .lang-icon { color: var(--accent); }
+    .lang-lbl {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .lang-sub {
+      font-family: var(--mono);
+      font-size: .65rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .lang-btn.active .lang-sub { color: var(--accent); }
+
     /* ── DIVIDER ── */
     .divider {
       display: flex;
@@ -562,3 +605,4 @@
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+  
