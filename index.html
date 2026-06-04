@@ -1,79 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Green Screen Caption Video Maker</title>
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CaptionForge — Green Screen Video Maker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Green Screen Caption Video Maker</h1>
-        
-        <div class="section">
-            <div class="section-title">Deepgram API Key</div>
-            <div class="password-wrapper">
-                <input type="password" id="apiKey" placeholder="Enter your Deepgram API Key">
-                <button class="toggle-password" onclick="toggleKeyVisibility()">Show</button>
-            </div>
-            <div style="margin-top: 8px; font-size: 0.8rem; color: #a0d2db;">
-                Don't have a key? <a href="https://deepgram.com" target="_blank" style="color: #a0d2db; text-decoration: underline;">Get it from Deepgram</a>
-            </div>
-            <div class="error-message" id="keyError">Please enter a valid API key</div>
-        </div>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
 
-        <div class="section">
-            <div class="section-title">Upload Audio File</div>
-            <input type="file" id="audioFile" accept="audio/*,video/*,.mp3,.mp4,.wav,.m4a,.ogg">
-            <div class="error-message" id="fileError">Please select an audio file</div>
-        </div>
+  <div class="wrap">
 
-        <div class="section">
-            <div class="section-title">Caption Style</div>
-            <div class="style-selector">
-                <div class="style-option selected" data-style="classic">
-                    <div class="style-preview" style="background: #000; color: #fff; font-family: Arial;">Classic</div>
-                    <div style="font-size: 0.75rem;">Simple & Clean</div>
-                </div>
-                <div class="style-option" data-style="modern">
-                    <div class="style-preview" style="background: transparent; color: #a0d2db; text-shadow: 0 0 10px rgba(160,210,219,0.5);">Modern</div>
-                    <div style="font-size: 0.75rem;">Glow Effect</div>
-                </div>
-                <div class="style-option" data-style="bold">
-                    <div class="style-preview" style="background: #000; color: #ff6b6b; font-weight: bold; text-shadow: 2px 2px 0 #000;">Bold</div>
-                    <div style="font-size: 0.75rem;">High Contrast</div>
-                </div>
-            </div>
-        </div>
-
-        <button class="btn-primary" id="processBtn" onclick="processAudio()">Process & Generate Video</button>
-        
-        <div class="progress-container" id="progressContainer" style="display: none;">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <div class="progress-text" id="progressText">Processing...</div>
-        </div>
-
-        <div class="log-output" id="logOutput"></div>
-
-        <div class="download-section" id="downloadSection">
-            <button class="btn-primary" id="downloadBtn" onclick="downloadVideo()">Download Green Screen Video</button>
-            <button class="btn-secondary" id="downloadTransparentBtn" onclick="downloadTransparentVideo()">Download Transparent Video</button>
-        </div>
-
-        <div class="developer-info">
-            <div class="developer-text">Developed by debangsh_bio-wala</div>
-            <div class="slider-container" id="sliderBox">
-                <div class="slider-content">
-                    <div class="slider-initial">Hover or tap to reveal</div>
-                    <div class="slider-reveal">
-                        <a href="https://www.instagram.com/debangshuooppp?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank">Instagram: Debangsh</a>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- HEADER -->
+    <div class="header">
+      <div class="eyebrow">Audio to Green Screen Video</div>
+      <h1>Caption<span>Forge</span></h1>
+      <div class="sub">Deepgram AI &bull; Noise Removal &bull; 3 Styles</div>
     </div>
-  <script src="js/script.js"></script>
+
+    <!-- STEP 1: API KEY -->
+    <div class="card">
+      <div class="card-label">Step 1 &mdash; Deepgram API Key</div>
+      <div class="input-wrap">
+        <input type="password" id="apiKey" placeholder="Paste your Deepgram key here..." />
+        <button class="toggle-vis" id="toggleBtn" onclick="toggleKey()">SHOW</button>
+      </div>
+      <div class="err-msg" id="keyErr">API key is required to continue.</div>
+      <div class="hint">
+        No key?
+        <a href="https://console.deepgram.com/signup" target="_blank" rel="noopener">Get one free at Deepgram</a>
+        &mdash; free tier is enough.
+      </div>
+    </div>
+
+    <!-- STEP 2: AUDIO UPLOAD -->
+    <div class="card">
+      <div class="card-label">Step 2 &mdash; Upload Audio / Video</div>
+      <div class="file-zone" id="fileZone">
+        <input type="file" id="audioFile" accept="audio/*,video/*,.mp3,.mp4,.wav,.m4a,.ogg,.flac" />
+        <span class="file-icon" id="fileIcon">&#9099;</span>
+        <div class="fz-text" id="fzText">Tap to choose file</div>
+        <div class="fz-name" id="fzName"></div>
+        <div class="fz-sub" id="fzSub">MP3, MP4, WAV, M4A, OGG, FLAC</div>
+      </div>
+      <div class="err-msg" id="fileErr">Please select an audio or video file.</div>
+    </div>
+
+    <!-- STEP 3: STYLE -->
+    <div class="card">
+      <div class="card-label">Step 3 &mdash; Caption Style</div>
+      <div class="styles">
+
+        <div class="style-btn active" data-style="classic" onclick="setStyle(this)">
+          <div class="style-preview" style="background:#000; color:#fff; font-family:'Arial Black',Arial; text-shadow:none;">
+            LYRIC
+          </div>
+          <div class="style-name">CLASSIC</div>
+        </div>
+
+        <div class="style-btn" data-style="neon" onclick="setStyle(this)">
+          <div class="style-preview" style="background:#0a0010; color:#e040fb; text-shadow:0 0 12px #e040fb, 0 0 28px #e040fb;">
+            LYRIC
+          </div>
+          <div class="style-name">NEON</div>
+        </div>
+
+        <div class="style-btn" data-style="fire" onclick="setStyle(this)">
+          <div class="style-preview" style="background:#0d0500; color:#ff9900; text-shadow:0 0 10px #ff4400, 0 0 24px #ff2200; font-style:italic;">
+            LYRIC
+          </div>
+          <div class="style-name">FIRE</div>
+        </div>
+
+        <div class="style-btn" data-style="clean" onclick="setStyle(this)">
+          <div class="style-preview" style="background:linear-gradient(135deg,#1a1a2e,#0f3460); color:#e0f7fa; font-weight:300; letter-spacing:.08em;">
+            lyric
+          </div>
+          <div class="style-name">MINIMAL</div>
+        </div>
+
+        <div class="style-btn" data-style="retro" onclick="setStyle(this)">
+          <div class="style-preview" style="background:#1a1200; color:#f5c518; font-family:Georgia,serif; font-style:italic;">
+            Lyric
+          </div>
+          <div class="style-name">RETRO</div>
+        </div>
+
+        <div class="style-btn" data-style="bold" onclick="setStyle(this)">
+          <div class="style-preview" style="background:#0a0a0a; color:#fff; -webkit-text-stroke:2px #ff5c72; font-weight:900; letter-spacing:-.02em;">
+            LYRIC
+          </div>
+          <div class="style-name">OUTLINE</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- GENERATE BUTTON -->
+    <button class="btn-process" id="genBtn" onclick="processAudio()">
+      Process &amp; Generate Video
+    </button>
+
+    <!-- PROGRESS CARD -->
+    <div class="card progress-card" id="progressCard">
+      <div class="prog-header">
+        <span class="prog-label" id="progLabel">Initialising...</span>
+        <span class="prog-pct" id="progPct">0%</span>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-fill" id="progFill"></div>
+      </div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+
+    <!-- DOWNLOAD SECTION -->
+    <div class="card dl-section" id="dlSection">
+      <div class="card-label">Step 4 &mdash; Download</div>
+      <div class="dl-row">
+        <button class="btn-dl primary" onclick="downloadVideo()">Green Screen</button>
+        <button class="btn-dl" onclick="showGreenScreenNote()">Transparent Info</button>
+      </div>
+      <div class="dl-note">
+        Green screen (chroma key) can be removed in CapCut, Premiere, or DaVinci Resolve.
+      </div>
+    </div>
+
+    <!-- DEVELOPER CARD -->
+    <div class="dev-card">
+      <div class="dev-left">
+        <div class="dev-by">Developed by</div>
+        <div class="dev-name">debangsh_bio-wala</div>
+      </div>
+      <a class="ig-link" href="https://www.instagram.com/debangshuooppp?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener">
+        <div class="ig-pill">
+          <div class="ig-layer front">Tap for Instagram</div>
+          <div class="ig-layer back">@Debangsh</div>
+        </div>
+      </a>
+    </div>
+
+  </div><!-- /wrap -->
+<script src="js/script.js"></script>
 </body>
 </html>
