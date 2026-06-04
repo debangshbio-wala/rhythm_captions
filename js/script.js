@@ -1,441 +1,493 @@
-    // Global variables
-        let apiKey = '';
-        let audioFile = null;
-        let selectedStyle = 'classic';
-        let generatedVideoBlob = null;
-        let generatedTransparentBlob = null;
+    // ─────────────────────────────────────────────────────────────
+    //  STATE
+    // ─────────────────────────────────────────────────────────────
+    let selectedStyle   = 'classic';
+    let generatedBlob   = null;
+    let keyVisible      = false;
 
-        // API Key visibility toggle
-        function toggleKeyVisibility() {
-            const input = document.getElementById('apiKey');
-            const btn = document.querySelector('.toggle-password');
-            if (input.type === 'password') {
-                input.type = 'text';
-                btn.textContent = 'Hide';
-            } else {
-                input.type = 'password';
-                btn.textContent = 'Show';
+    // ─────────────────────────────────────────────────────────────
+    //  UTILS
+    // ─────────────────────────────────────────────────────────────
+    function toggleKey() {
+      const inp = document.getElementById('apiKey');
+      const btn = document.getElementById('toggleBtn');
+      keyVisible = !keyVisible;
+      inp.type = keyVisible ? 'text' : 'password';
+      btn.textContent = keyVisible ? 'HIDE' : 'SHOW';
+    }
+
+    function setStyle(el) {
+      document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+      selectedStyle = el.dataset.style;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  FILE UPLOAD UI
+    // ─────────────────────────────────────────────────────────────
+    const fileInput = document.getElementById('audioFile');
+    const fileZone  = document.getElementById('fileZone');
+
+    fileInput.addEventListener('change', e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      document.getElementById('fzIcon') && (document.getElementById('fzIcon').textContent = '');
+      document.getElementById('fileIcon').textContent = '✓';
+      document.getElementById('fzText').textContent   = 'File selected:';
+      document.getElementById('fzName').textContent   = f.name;
+      const mb = (f.size / 1024 / 1024).toFixed(1);
+      document.getElementById('fzSub').textContent    = mb + ' MB';
+      document.getElementById('fileErr').style.display = 'none';
+      fileZone.style.borderColor = 'var(--accent)';
+      fileZone.style.background  = 'rgba(200,245,96,.04)';
+    });
+
+    // drag-drop
+    fileZone.addEventListener('dragover',  e => { e.preventDefault(); fileZone.classList.add('dragover'); });
+    fileZone.addEventListener('dragleave', ()  => fileZone.classList.remove('dragover'));
+    fileZone.addEventListener('drop', e => {
+      e.preventDefault();
+      fileZone.classList.remove('dragover');
+      const f = e.dataTransfer.files[0];
+      if (f) {
+        const dt = new DataTransfer();
+        dt.items.add(f);
+        fileInput.files = dt.files;
+        fileInput.dispatchEvent(new Event('change'));
+      }
+    });
+
+    // ─────────────────────────────────────────────────────────────
+    //  LOG
+    // ─────────────────────────────────────────────────────────────
+    function log(msg, type = 'info') {
+      const box = document.getElementById('logBox');
+      box.style.display = 'block';
+      const d = document.createElement('div');
+      d.className = 'log-line' + (type === 'ok' ? ' ok' : type === 'err' ? ' err' : '');
+      const ts = new Date().toLocaleTimeString('en', { hour12: false });
+      d.innerHTML = `<span class="ts">${ts}</span>${msg}`;
+      box.appendChild(d);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function setProgress(pct, label) {
+      document.getElementById('progressCard').style.display = 'block';
+      document.getElementById('progFill').style.width = pct + '%';
+      document.getElementById('progLabel').textContent = label;
+      document.getElementById('progPct').textContent   = pct + '%';
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  AUDIO PROCESSING
+    // ─────────────────────────────────────────────────────────────
+
+    // FIXED: AudioBuffer does NOT have .slice() — use this helper instead
+    function sliceAudioBuffer(buffer, startSec, endSec) {
+      const sr          = buffer.sampleRate;
+      const startSample = Math.floor(startSec * sr);
+      const endSample   = Math.min(Math.floor(endSec * sr), buffer.length);
+      const numSamples  = endSample - startSample;
+      if (numSamples <= 0) return null;
+
+      const ctx  = new OfflineAudioContext(buffer.numberOfChannels, numSamples, sr);
+      const out  = ctx.createBuffer(buffer.numberOfChannels, numSamples, sr);
+
+      for (let c = 0; c < buffer.numberOfChannels; c++) {
+        const src  = buffer.getChannelData(c);
+        const dest = out.getChannelData(c);
+        for (let i = 0; i < numSamples; i++) {
+          dest[i] = src[startSample + i];
+        }
+      }
+      return out;
+    }
+
+    async function reduceNoise(audioBuffer) {
+      const offCtx = new OfflineAudioContext(
+        audioBuffer.numberOfChannels,
+        audioBuffer.length,
+        audioBuffer.sampleRate
+      );
+      const src = offCtx.createBufferSource();
+      src.buffer = audioBuffer;
+
+      const hp = offCtx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 80;
+
+      const lp = offCtx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 8000;
+
+      const comp = offCtx.createDynamicsCompressor();
+      comp.threshold.value = -24;
+      comp.knee.value       = 30;
+      comp.ratio.value      = 12;
+      comp.attack.value     = 0.003;
+      comp.release.value    = 0.25;
+
+      src.connect(hp);
+      hp.connect(lp);
+      lp.connect(comp);
+      comp.connect(offCtx.destination);
+      src.start(0);
+      return offCtx.startRendering();
+    }
+
+    function audioBufferToWav(buffer) {
+      // Mix down to mono for Deepgram
+      const sr      = buffer.sampleRate;
+      const data    = buffer.getChannelData(0);
+      const length  = data.length;
+      const arrBuf  = new ArrayBuffer(44 + length * 2);
+      const view    = new DataView(arrBuf);
+
+      function ws(off, str) {
+        for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i));
+      }
+      ws(0, 'RIFF');
+      view.setUint32(4, 36 + length * 2, true);
+      ws(8, 'WAVE');
+      ws(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sr, true);
+      view.setUint32(28, sr * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      ws(36, 'data');
+      view.setUint32(40, length * 2, true);
+
+      let off = 44;
+      for (let i = 0; i < length; i++) {
+        const s = Math.max(-1, Math.min(1, data[i]));
+        view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        off += 2;
+      }
+      return new Blob([arrBuf], { type: 'audio/wav' });
+    }
+
+    async function transcribeChunk(wavBlob, apiKey, timeOffset) {
+      const resp = await fetch(
+        'https://api.deepgram.com/v1/listen?model=nova-2&language=en&smart_format=true&punctuate=true',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Token ' + apiKey,
+            'Content-Type': 'audio/wav'
+          },
+          body: wavBlob
+        }
+      );
+      if (!resp.ok) {
+        const txt = await resp.text();
+        throw new Error('Deepgram error ' + resp.status + ': ' + txt.substring(0, 120));
+      }
+      const json  = await resp.json();
+      const words = json?.results?.channels?.[0]?.alternatives?.[0]?.words || [];
+      return words.map(w => ({
+        word:  w.punctuated_word || w.word,
+        start: parseFloat(w.start) + timeOffset,
+        end:   parseFloat(w.end) + timeOffset,
+        conf:  w.confidence
+      }));
+    }
+
+    function fillGaps(words) {
+      if (!words.length) return words;
+      const out   = [];
+      let lastEnd = 0;
+      for (let i = 0; i < words.length; i++) {
+        const w = words[i];
+        if (w.start > lastEnd + 0.5 && i > 0) {
+          // Gap — insert empty placeholder so previous word doesn't linger
+          out.push({ word: '', start: lastEnd, end: w.start, gap: true });
+        }
+        out.push(w);
+        lastEnd = w.end;
+      }
+      return out;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  VIDEO GENERATION
+    // ─────────────────────────────────────────────────────────────
+    const STYLES = {
+      classic: (ctx, text, W, H) => {
+        ctx.font      = 'bold 72px "Arial Black", Arial, sans-serif';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth   = 6;
+        ctx.textAlign   = 'center';
+        ctx.textBaseline = 'middle';
+        wrapText(ctx, text, W / 2, H * 0.82, W - 80, 80, true);
+      },
+      neon: (ctx, text, W, H) => {
+        ctx.font        = 'bold 68px "Arial Black", Arial, sans-serif';
+        ctx.textAlign   = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = '#e040fb';
+        ctx.shadowBlur  = 24;
+        ctx.fillStyle   = '#f8aaff';
+        ctx.strokeStyle = '#9b00d3';
+        ctx.lineWidth   = 3;
+        wrapText(ctx, text, W / 2, H * 0.82, W - 80, 80, true);
+        ctx.shadowBlur = 0;
+      },
+      fire: (ctx, text, W, H) => {
+        ctx.save();
+        ctx.font        = 'bold italic 72px "Arial Black", Arial, sans-serif';
+        ctx.textAlign   = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = '#ff2200';
+        ctx.shadowBlur  = 20;
+        ctx.fillStyle   = '#ffaa00';
+        ctx.strokeStyle = '#ff4400';
+        ctx.lineWidth   = 4;
+        wrapText(ctx, text, W / 2, H * 0.82, W - 80, 80, true);
+        ctx.shadowBlur  = 0;
+        ctx.restore();
+      },
+      clean: (ctx, text, W, H) => {
+        ctx.font        = '300 56px "Syne", Arial, sans-serif';
+        ctx.textAlign   = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle   = '#e0f7fa';
+        ctx.letterSpacing = '0.05em';
+        wrapText(ctx, text, W / 2, H * 0.82, W - 100, 70, false);
+      },
+      retro: (ctx, text, W, H) => {
+        ctx.font        = 'bold italic 68px Georgia, serif';
+        ctx.textAlign   = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle   = '#f5c518';
+        ctx.strokeStyle = '#8b6914';
+        ctx.lineWidth   = 4;
+        // Drop shadow
+        ctx.shadowColor = 'rgba(0,0,0,0.9)';
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+        ctx.shadowBlur   = 0;
+        wrapText(ctx, text, W / 2, H * 0.82, W - 80, 80, true);
+        ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+      },
+      bold: (ctx, text, W, H) => {
+        ctx.font        = '900 80px "Arial Black", Arial, sans-serif';
+        ctx.textAlign   = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.strokeStyle = '#ff5c72';
+        ctx.lineWidth   = 6;
+        ctx.fillStyle   = '#ffffff';
+        wrapText(ctx, text, W / 2, H * 0.82, W - 80, 90, true);
+      }
+    };
+
+    function wrapText(ctx, text, x, y, maxW, lineH, stroke) {
+      const words = text.split(' ');
+      const lines = [];
+      let line    = '';
+
+      for (const wrd of words) {
+        const test = line ? line + ' ' + wrd : wrd;
+        if (ctx.measureText(test).width > maxW && line) {
+          lines.push(line);
+          line = wrd;
+        } else {
+          line = test;
+        }
+      }
+      if (line) lines.push(line);
+
+      const totalH = lines.length * lineH;
+      const startY = y - totalH / 2 + lineH / 2;
+
+      for (let i = 0; i < lines.length; i++) {
+        const ly = startY + i * lineH;
+        if (stroke) ctx.strokeText(lines[i], x, ly);
+        ctx.fillText(lines[i], x, ly);
+      }
+    }
+
+    function generateVideo(words, style, durationSec) {
+      return new Promise((resolve, reject) => {
+        const W = 1080, H = 1920;
+        const canvas = document.createElement('canvas');
+        canvas.width  = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+          ? 'video/webm;codecs=vp9'
+          : 'video/webm';
+
+        const stream   = canvas.captureStream(30);
+        const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 3000000 });
+        const chunks   = [];
+
+        recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+        recorder.onstop = () => resolve(new Blob(chunks, { type: 'video/webm' }));
+        recorder.onerror = e => reject(e.error);
+
+        recorder.start();
+
+        const fps    = 30;
+        const total  = Math.ceil(durationSec * fps);
+        let   frame  = 0;
+
+        const drawFrame = () => {
+          if (frame >= total) {
+            recorder.stop();
+            return;
+          }
+          const t = frame / fps;
+
+          // Green background
+          ctx.fillStyle = '#00FF00';
+          ctx.fillRect(0, 0, W, H);
+
+          // Find word active at time t
+          const active = words.filter(w => !w.gap && w.start <= t && w.end >= t);
+
+          if (active.length > 0) {
+            // Get context window: show up to 5 words around current
+            const firstIdx = words.indexOf(active[0]);
+            const windowWords = [];
+            for (let i = Math.max(0, firstIdx - 2); i < Math.min(words.length, firstIdx + 4); i++) {
+              if (!words[i].gap) windowWords.push(words[i]);
             }
+            const text = windowWords.map(w => w.word).join(' ');
+            ctx.save();
+            STYLES[style](ctx, text, W, H);
+            ctx.restore();
+          }
+
+          frame++;
+          requestAnimationFrame(drawFrame);
+        };
+
+        drawFrame();
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  MAIN PROCESS
+    // ─────────────────────────────────────────────────────────────
+    async function processAudio() {
+      const apiKey    = document.getElementById('apiKey').value.trim();
+      const fileEl    = document.getElementById('audioFile');
+      let   valid     = true;
+
+      if (!apiKey) {
+        document.getElementById('keyErr').style.display = 'block';
+        valid = false;
+      } else {
+        document.getElementById('keyErr').style.display = 'none';
+      }
+
+      if (!fileEl.files[0]) {
+        document.getElementById('fileErr').style.display = 'block';
+        valid = false;
+      } else {
+        document.getElementById('fileErr').style.display = 'none';
+      }
+
+      if (!valid) return;
+
+      const file = fileEl.files[0];
+      const btn  = document.getElementById('genBtn');
+
+      btn.disabled = true;
+      document.getElementById('dlSection').style.display = 'none';
+      generatedBlob = null;
+
+      try {
+        // ── 1. Decode audio ──────────────────────────────────────
+        setProgress(5, 'Reading audio file...');
+        log('Decoding audio: ' + file.name);
+
+        const arrBuf   = await file.arrayBuffer();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let   buffer   = await audioCtx.decodeAudioData(arrBuf);
+        const totalDur = buffer.duration;
+        log('Duration: ' + totalDur.toFixed(1) + 's  |  Sample rate: ' + buffer.sampleRate + ' Hz');
+
+        // ── 2. Noise reduction ───────────────────────────────────
+        setProgress(15, 'Removing background noise...');
+        log('Applying noise filters...');
+        buffer = await reduceNoise(buffer);
+        log('Noise reduction done', 'ok');
+
+        // ── 3. Chunk & transcribe ────────────────────────────────
+        const CHUNK = 14;   // seconds per chunk (safe for Deepgram free tier)
+        const numChunks = Math.ceil(totalDur / CHUNK);
+        let allWords = [];
+
+        for (let i = 0; i < numChunks; i++) {
+          const start  = i * CHUNK;
+          const end    = Math.min(start + CHUNK, totalDur);
+          const pct    = Math.round(15 + (i / numChunks) * 60);
+
+          setProgress(pct, `Transcribing chunk ${i + 1} of ${numChunks}...`);
+          log(`Chunk ${i + 1}/${numChunks}: ${start.toFixed(1)}s – ${end.toFixed(1)}s`);
+
+          // FIXED: use sliceAudioBuffer instead of .slice()
+          const chunk   = sliceAudioBuffer(buffer, start, end);
+          if (!chunk) { log(`Chunk ${i+1} empty, skipping`); continue; }
+
+          const wavBlob = audioBufferToWav(chunk);
+          const words   = await transcribeChunk(wavBlob, apiKey, start);
+          log(`  Got ${words.length} words`, words.length > 0 ? 'ok' : 'info');
+          allWords.push(...words);
+
+          // Polite delay between requests
+          if (i < numChunks - 1) await new Promise(r => setTimeout(r, 200));
         }
 
-        // Style selector
-        document.querySelectorAll('.style-option').forEach(option => {
-            option.addEventListener('click', function() {
-                document.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected'));
-                this.classList.add('selected');
-                selectedStyle = this.dataset.style;
-            });
-        });
+        // ── 4. Fix gaps ──────────────────────────────────────────
+        setProgress(78, 'Fixing timing gaps...');
+        allWords = fillGaps(allWords);
+        log(`Total words after gap fix: ${allWords.filter(w => !w.gap).length}`, 'ok');
 
-        // Slider box functionality
-        const sliderBox = document.getElementById('sliderBox');
-        sliderBox.addEventListener('click', function() {
-            this.classList.toggle('active');
-        });
-
-        // File input handler
-        document.getElementById('audioFile').addEventListener('change', function(e) {
-            audioFile = e.target.files[0];
-            document.getElementById('fileError').style.display = 'none';
-        });
-
-        // Log function
-        function log(message) {
-            const logOutput = document.getElementById('logOutput');
-            logOutput.style.display = 'block';
-            logOutput.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
-            logOutput.scrollTop = logOutput.scrollHeight;
+        if (allWords.filter(w => !w.gap).length === 0) {
+          throw new Error('No words were transcribed. Check your API key and audio file.');
         }
 
-        // Update progress
-        function updateProgress(percent, message) {
-            document.getElementById('progressContainer').style.display = 'block';
-            document.getElementById('progressFill').style.width = percent + '%';
-            document.getElementById('progressText').textContent = message;
-        }
+        // ── 5. Render video ──────────────────────────────────────
+        setProgress(82, 'Rendering green screen video...');
+        log('Generating video frames at 1080×1920...');
+        generatedBlob = await generateVideo(allWords, selectedStyle, totalDur);
+        log('Video rendered! Size: ' + (generatedBlob.size / 1024 / 1024).toFixed(1) + ' MB', 'ok');
 
-        // Noise reduction using Web Audio API
-        async function reduceNoise(audioBuffer) {
-            const offlineCtx = new OfflineAudioContext(
-                audioBuffer.numberOfChannels,
-                audioBuffer.length,
-                audioBuffer.sampleRate
-            );
+        setProgress(100, 'Done!');
+        document.getElementById('dlSection').style.display = 'block';
 
-            const source = offlineCtx.createBufferSource();
-            source.buffer = audioBuffer;
+      } catch (err) {
+        log('ERROR: ' + err.message, 'err');
+        setProgress(0, 'Error occurred — check log above');
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+      }
+    }
 
-            // Create filters for noise reduction
-            const lowPass = offlineCtx.createBiquadFilter();
-            lowPass.type = 'lowpass';
-            lowPass.frequency.value = 8000;
-            lowPass.Q.value = 0.7;
+    // ─────────────────────────────────────────────────────────────
+    //  DOWNLOAD
+    // ─────────────────────────────────────────────────────────────
+    function downloadVideo() {
+      if (!generatedBlob) return;
+      const url = URL.createObjectURL(generatedBlob);
+      const a   = document.createElement('a');
+      a.href     = url;
+      a.download = 'captionforge_' + Date.now() + '.webm';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      log('Download started', 'ok');
+    }
 
-            const highPass = offlineCtx.createBiquadFilter();
-            highPass.type = 'highpass';
-            highPass.frequency.value = 80;
-            highPass.Q.value = 0.7;
-
-            // Compressor for dynamic range
-            const compressor = offlineCtx.createDynamicsCompressor();
-            compressor.threshold.value = -24;
-            compressor.knee.value = 30;
-            compressor.ratio.value = 12;
-            compressor.attack.value = 0.003;
-            compressor.release.value = 0.25;
-
-            source.connect(highPass);
-            highPass.connect(lowPass);
-            lowPass.connect(compressor);
-            compressor.connect(offlineCtx.destination);
-
-            source.start(0);
-            return await offlineCtx.startRendering();
-        }
-
-        // Chunk audio for Deepgram
-        function chunkAudio(audioBuffer, chunkDuration = 15) {
-            const sampleRate = audioBuffer.sampleRate;
-            const chunkSamples = chunkDuration * sampleRate;
-            const chunks = [];
-            
-            for (let i = 0; i < audioBuffer.length; i += chunkSamples) {
-                const chunk = audioBuffer.slice(i, Math.min(i + chunkSamples, audioBuffer.length));
-                chunks.push(chunk);
-            }
-            
-            return chunks;
-        }
-
-        // Convert AudioBuffer to WAV blob
-        function audioBufferToWav(audioBuffer) {
-            const numChannels = audioBuffer.numberOfChannels;
-            const sampleRate = audioBuffer.sampleRate;
-            const format = 1; // PCM
-            const bitDepth = 16;
-            
-            const bytesPerSample = bitDepth / 8;
-            const blockAlign = numChannels * bytesPerSample;
-            
-            const buffer = audioBuffer.getChannelData(0);
-            const dataLength = buffer.length * bytesPerSample;
-            const headerLength = 44;
-            const totalLength = headerLength + dataLength;
-            
-            const arrayBuffer = new ArrayBuffer(totalLength);
-            const view = new DataView(arrayBuffer);
-            
-            // WAV header
-            writeString(view, 0, 'RIFF');
-            view.setUint32(4, totalLength - 8, true);
-            writeString(view, 8, 'WAVE');
-            writeString(view, 12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, format, true);
-            view.setUint16(22, numChannels, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * blockAlign, true);
-            view.setUint16(32, blockAlign, true);
-            view.setUint16(34, bitDepth, true);
-            writeString(view, 36, 'data');
-            view.setUint32(40, dataLength, true);
-            
-            // Write audio data
-            let offset = 44;
-            for (let i = 0; i < buffer.length; i++) {
-                const sample = Math.max(-1, Math.min(1, buffer[i]));
-                view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
-                offset += 2;
-            }
-            
-            return new Blob([arrayBuffer], { type: 'audio/wav' });
-        }
-
-        function writeString(view, offset, string) {
-            for (let i = 0; i < string.length; i++) {
-                view.setUint8(offset + i, string.charCodeAt(i));
-            }
-        }
-
-        // Transcribe with Deepgram
-        async function transcribeWithDeepgram(audioBlob, apiKey) {
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'audio.wav');
-            
-            const response = await fetch('https://api.deepgram.com/v1/listen?model=whisper&language=en&smart_format=true&utterances=true&timestamps=true', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Token ${apiKey}`,
-                },
-                body: formData
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Deepgram API error: ${response.status} ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            return data;
-        }
-
-        // Fix gaps in transcription
-        function fixTranscriptionGaps(words) {
-            if (!words || words.length === 0) return words;
-            
-            const fixed = [];
-            let lastEnd = 0;
-            
-            for (let i = 0; i < words.length; i++) {
-                const word = words[i];
-                
-                // Check for gap
-                if (i > 0 && word.start > lastEnd + 0.5) {
-                    // Insert a small pause marker
-                    fixed.push({
-                        word: '',
-                        start: lastEnd,
-                        end: word.start,
-                        isGap: true
-                    });
-                }
-                
-                fixed.push({
-                    word: word.punctuated_word || word.word,
-                    start: word.start,
-                    end: word.end,
-                    confidence: word.confidence
-                });
-                
-                lastEnd = word.end;
-            }
-            
-            return fixed;
-        }
-
-        // Generate video with captions
-        async function generateCaptionVideo(words, style, audioBuffer) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Set canvas size
-            canvas.width = 1080;
-            canvas.height = 1920;
-            
-            // Set background to green
-            ctx.fillStyle = '#00FF00';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            const stream = canvas.captureStream(30);
-            const mediaRecorder = new MediaRecorder(stream, {
-                mimeType: 'video/webm;codecs=vp9',
-                videoBitsPerSecond: 2500000
-            });
-            
-            const chunks = [];
-            mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-            
-            const recordingPromise = new Promise((resolve) => {
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: 'video/webm' });
-                    resolve(blob);
-                };
-            });
-            
-            mediaRecorder.start();
-            
-            const fps = 30;
-            const totalFrames = Math.ceil(audioBuffer.duration * fps);
-            let currentFrame = 0;
-            
-            const drawFrame = () => {
-                if (currentFrame >= totalFrames) {
-                    mediaRecorder.stop();
-                    return;
-                }
-                
-                const currentTime = currentFrame / fps;
-                
-                // Clear canvas with green
-                ctx.fillStyle = '#00FF00';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Find current words
-                const currentWords = words.filter(w => 
-                    w.start <= currentTime && w.end >= currentTime && !w.isGap
-                );
-                
-                if (currentWords.length > 0) {
-                    const text = currentWords.map(w => w.word).join(' ');
-                    
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    
-                    // Apply selected style
-                    switch(style) {
-                        case 'classic':
-                            ctx.font = 'bold 72px Arial, sans-serif';
-                            ctx.fillStyle = '#FFFFFF';
-                            ctx.strokeStyle = '#000000';
-                            ctx.lineWidth = 4;
-                            ctx.strokeText(text, canvas.width / 2, canvas.height * 0.85);
-                            ctx.fillText(text, canvas.width / 2, canvas.height * 0.85);
-                            break;
-                            
-                        case 'modern':
-                            ctx.font = 'bold 68px "Segoe UI", sans-serif';
-                            ctx.shadowColor = '#a0d2db';
-                            ctx.shadowBlur = 15;
-                            ctx.fillStyle = '#FFFFFF';
-                            ctx.fillText(text, canvas.width / 2, canvas.height * 0.85);
-                            ctx.shadowBlur = 0;
-                            break;
-                            
-                        case 'bold':
-                            ctx.font = 'bold 76px "Impact", sans-serif';
-                            ctx.fillStyle = '#FF4444';
-                            ctx.strokeStyle = '#000000';
-                            ctx.lineWidth = 6;
-                            ctx.strokeText(text, canvas.width / 2, canvas.height * 0.85);
-                            ctx.fillText(text, canvas.width / 2, canvas.height * 0.85);
-                            break;
-                    }
-                }
-                
-                currentFrame++;
-                requestAnimationFrame(drawFrame);
-            };
-            
-            drawFrame();
-            
-            return await recordingPromise;
-        }
-
-        // Main process function
-        async function processAudio() {
-            apiKey = document.getElementById('apiKey').value.trim();
-            const fileInput = document.getElementById('audioFile');
-            
-            // Validation
-            let isValid = true;
-            if (!apiKey) {
-                document.getElementById('keyError').style.display = 'block';
-                isValid = false;
-            } else {
-                document.getElementById('keyError').style.display = 'none';
-            }
-            
-            if (!fileInput.files[0]) {
-                document.getElementById('fileError').style.display = 'block';
-                isValid = false;
-            } else {
-                document.getElementById('fileError').style.display = 'none';
-            }
-            
-            if (!isValid) return;
-            
-            audioFile = fileInput.files[0];
-            
-            try {
-                document.getElementById('processBtn').disabled = true;
-                document.getElementById('downloadSection').style.display = 'none';
-                updateProgress(0, 'Reading audio file...');
-                log('Starting process...');
-                
-                // Read audio file
-                const arrayBuffer = await audioFile.arrayBuffer();
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                let audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                
-                updateProgress(20, 'Reducing background noise...');
-                log('Reducing noise...');
-                
-                // Reduce noise
-                audioBuffer = await reduceNoise(audioBuffer);
-                
-                updateProgress(40, 'Preparing audio chunks...');
-                log('Chunking audio...');
-                
-                // Chunk audio
-                const chunks = chunkAudio(audioBuffer, 15);
-                let allWords = [];
-                
-                // Transcribe each chunk
-                for (let i = 0; i < chunks.length; i++) {
-                    updateProgress(40 + (i / chunks.length) * 40, `Transcribing chunk ${i + 1}/${chunks.length}...`);
-                    log(`Processing chunk ${i + 1}/${chunks.length}`);
-                    
-                    const chunkBlob = audioBufferToWav(chunks[i]);
-                    const result = await transcribeWithDeepgram(chunkBlob, apiKey);
-                    
-                    if (result.results?.channels?.[0]?.alternatives?.[0]?.words) {
-                        const words = result.results.channels[0].alternatives[0].words;
-                        // Adjust timestamps for chunk offset
-                        const timeOffset = i * 15;
-                        const adjustedWords = words.map(w => ({
-                            ...w,
-                            start: w.start + timeOffset,
-                            end: w.end + timeOffset
-                        }));
-                        allWords.push(...adjustedWords);
-                    }
-                    
-                    // Small delay to avoid rate limiting
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                }
-                
-                updateProgress(85, 'Fixing transcription gaps...');
-                log('Fixing gaps in transcription...');
-                
-                // Fix gaps
-                allWords = fixTranscriptionGaps(allWords);
-                
-                updateProgress(90, 'Generating video...');
-                log('Generating green screen video...');
-                
-                // Generate video
-                generatedVideoBlob = await generateCaptionVideo(allWords, selectedStyle, audioBuffer);
-                
-                updateProgress(100, 'Complete!');
-                log('Video generated successfully!');
-                
-                document.getElementById('downloadSection').style.display = 'block';
-                document.getElementById('processBtn').disabled = false;
-                
-            } catch (error) {
-                log(`Error: ${error.message}`);
-                updateProgress(0, 'Error occurred');
-                document.getElementById('processBtn').disabled = false;
-            }
-        }
-
-        // Download functions
-        function downloadVideo() {
-            if (!generatedVideoBlob) return;
-            
-            const url = URL.createObjectURL(generatedVideoBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `green_screen_caption_${Date.now()}.webm`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            log('Green screen video downloaded');
-        }
-
-        function downloadTransparentVideo() {
-            // For transparent video, we'd need a more complex solution
-            // This is a placeholder - true transparency requires alpha channel support
-            log('Transparent video download is not fully supported in browser');
-            alert('Transparent video requires additional processing. Green screen video can be keyed out in video editors.');
-        }
-
-        // Initialize
-        log('App initialized. Ready to process.');
-        
-        // Handle slider on mobile
-        sliderBox.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            this.classList.toggle('active');
-        });
+    function showGreenScreenNote() {
+      log('Transparent WEBM with alpha requires VP9 alpha support (experimental). Use the green screen version and apply chroma key in CapCut / DaVinci / Premiere for best results.', 'info');
+    }
