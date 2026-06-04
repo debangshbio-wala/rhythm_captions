@@ -2,107 +2,78 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>Rhythm Captions</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Green Screen Caption Video Maker</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="card">
-        <header>
-            <h1>RHYTHM <span>CAPTIONS</span></h1>
-            <p>Upload a song &mdash; AI detects full lyrics &amp; syncs to the beat</p>
-        </header>
-
-        <main>
-            <!-- API Key -->
-            <div class="step-block">
-                <label for="apiKeyInput">Deepgram API Key <span class="tag">free — console.deepgram.com</span></label>
-                <div class="input-row">
-                    <input type="password" id="apiKeyInput" placeholder="Token xxxxxxxxxxxxxxxx" autocomplete="off">
-                    <button class="btn btn-ghost" id="btnToggleKey">👁</button>
-                </div>
-                <p class="hint">Key stays in your browser only.</p>
+    <div class="container">
+        <h1>Green Screen Caption Video Maker</h1>
+        
+        <div class="section">
+            <div class="section-title">Deepgram API Key</div>
+            <div class="password-wrapper">
+                <input type="password" id="apiKey" placeholder="Enter your Deepgram API Key">
+                <button class="toggle-password" onclick="toggleKeyVisibility()">Show</button>
             </div>
-
-            <hr class="divider">
-
-            <!-- Upload -->
-            <div class="drop-zone" id="dropZone">
-                <input type="file" id="audioUpload" accept="audio/*" hidden>
-                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 18V5l12-2v13"/>
-                    <circle cx="6" cy="18" r="3"/>
-                    <circle cx="18" cy="16" r="3"/>
-                </svg>
-                <p>Tap to upload song</p>
-                <small>MP3 / AAC / OGG / M4A / WAV</small>
+            <div style="margin-top: 8px; font-size: 0.8rem; color: #a0d2db;">
+                Don't have a key? <a href="https://deepgram.com" target="_blank" style="color: #a0d2db; text-decoration: underline;">Get it from Deepgram</a>
             </div>
+            <div class="error-message" id="keyError">Please enter a valid API key</div>
+        </div>
 
-            <!-- Controls -->
-            <div class="hidden" id="controlsCard">
-                <div class="file-badge">
-                    <span id="fileInfo">song.mp3</span>
-                    <button id="btnReset" class="btn-close">×</button>
+        <div class="section">
+            <div class="section-title">Upload Audio File</div>
+            <input type="file" id="audioFile" accept="audio/*,video/*,.mp3,.mp4,.wav,.m4a,.ogg">
+            <div class="error-message" id="fileError">Please select an audio file</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Caption Style</div>
+            <div class="style-selector">
+                <div class="style-option selected" data-style="classic">
+                    <div class="style-preview" style="background: #000; color: #fff; font-family: Arial;">Classic</div>
+                    <div style="font-size: 0.75rem;">Simple & Clean</div>
                 </div>
+                <div class="style-option" data-style="modern">
+                    <div class="style-preview" style="background: transparent; color: #a0d2db; text-shadow: 0 0 10px rgba(160,210,219,0.5);">Modern</div>
+                    <div style="font-size: 0.75rem;">Glow Effect</div>
+                </div>
+                <div class="style-option" data-style="bold">
+                    <div class="style-preview" style="background: #000; color: #ff6b6b; font-weight: bold; text-shadow: 2px 2px 0 #000;">Bold</div>
+                    <div style="font-size: 0.75rem;">High Contrast</div>
+                </div>
+            </div>
+        </div>
 
-                <div class="settings-grid">
-                    <div>
-                        <label for="songLang">Language</label>
-                        <select id="songLang">
-                            <option value="hinglish">Hinglish</option>
-                            <option value="hi">Hindi</option>
-                            <option value="en">English</option>
-                        </select>
+        <button class="btn-primary" id="processBtn" onclick="processAudio()">Process & Generate Video</button>
+        
+        <div class="progress-container" id="progressContainer" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Processing...</div>
+        </div>
+
+        <div class="log-output" id="logOutput"></div>
+
+        <div class="download-section" id="downloadSection">
+            <button class="btn-primary" id="downloadBtn" onclick="downloadVideo()">Download Green Screen Video</button>
+            <button class="btn-secondary" id="downloadTransparentBtn" onclick="downloadTransparentVideo()">Download Transparent Video</button>
+        </div>
+
+        <div class="developer-info">
+            <div class="developer-text">Developed by debangsh_bio-wala</div>
+            <div class="slider-container" id="sliderBox">
+                <div class="slider-content">
+                    <div class="slider-initial">Hover or tap to reveal</div>
+                    <div class="slider-reveal">
+                        <a href="https://www.instagram.com/debangshuooppp?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank">Instagram: Debangsh</a>
                     </div>
-                    <div>
-                        <label for="bgType">Background</label>
-                        <select id="bgType">
-                            <option value="green">Green Screen</option>
-                            <option value="black">Black</option>
-                            <option value="transparent">Transparent</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="captionStyle">Caption Style</label>
-                        <select id="captionStyle">
-                            <option value="word">Word Pop</option>
-                            <option value="bounce">Bounce</option>
-                            <option value="karaoke">Karaoke</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="progress-wrap" id="progressWrap">
-                    <div class="progress-bar" id="progressBar"></div>
-                </div>
-                <p class="hint" id="progressLabel"></p>
-
-                <button class="btn btn-primary full" id="btnTranscribe">
-                    <span id="transcribeBtnLabel">Detect Lyrics with AI</span>
-                </button>
-            </div>
-
-            <!-- Lyrics -->
-            <div class="hidden" id="lyricsPreviewBlock">
-                <hr class="divider">
-                <label>Detected Lyrics</label>
-                <textarea id="lyricsEditor" rows="5"></textarea>
-                <div class="action-buttons">
-                    <button class="btn btn-secondary" id="btnPreview">Preview</button>
-                    <button class="btn btn-primary" id="btnRender">Generate Video</button>
                 </div>
             </div>
-
-            <!-- Preview -->
-            <div class="preview-box hidden" id="previewBox">
-                <canvas id="videoCanvas" width="540" height="960"></canvas>
-                <p id="renderStatus" style="text-align:center; margin-top:8px;">Recording...</p>
-            </div>
-        </main>
+        </div>
     </div>
-
-    <script src="js/app.js"></script>
+  <script src="js/script.js"></script>
 </body>
-    </html>
+</html>
