@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css">
+ <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div class="blob blob-1"></div>
@@ -48,6 +48,46 @@
         <div class="fz-sub" id="fzSub">MP3, MP4, WAV, M4A, OGG, FLAC</div>
       </div>
       <div class="err-msg" id="fileErr">Please select an audio or video file.</div>
+    </div>
+
+    <!-- STEP 2b: LANGUAGE -->
+    <div class="card">
+      <div class="card-label">Step 2b &mdash; Song Language</div>
+      <div class="lang-grid" id="langGrid">
+        <div class="lang-btn active" data-lang="auto" onclick="setLang(this)">
+          <div class="lang-icon">&#9670;</div>
+          <div class="lang-lbl">Auto-detect</div>
+          <div class="lang-sub">Recommended</div>
+        </div>
+        <div class="lang-btn" data-lang="hi" onclick="setLang(this)">
+          <div class="lang-icon">&#9670;</div>
+          <div class="lang-lbl">Hindi</div>
+          <div class="lang-sub">हिन्दी</div>
+        </div>
+        <div class="lang-btn" data-lang="en" onclick="setLang(this)">
+          <div class="lang-icon">&#9670;</div>
+          <div class="lang-lbl">English</div>
+          <div class="lang-sub">EN</div>
+        </div>
+        <div class="lang-btn" data-lang="es" onclick="setLang(this)">
+          <div class="lang-icon">&#9670;</div>
+          <div class="lang-lbl">Spanish</div>
+          <div class="lang-sub">ES</div>
+        </div>
+        <div class="lang-btn" data-lang="fr" onclick="setLang(this)">
+          <div class="lang-icon">&#9670;</div>
+          <div class="lang-lbl">French</div>
+          <div class="lang-sub">FR</div>
+        </div>
+        <div class="lang-btn" data-lang="ko" onclick="setLang(this)">
+          <div class="lang-icon">&#9670;</div>
+          <div class="lang-lbl">Korean</div>
+          <div class="lang-sub">한국어</div>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:10px;">
+        Using <strong style="color:var(--accent)">Whisper Large</strong> model — handles singing, accents, and mixed languages.
+      </div>
     </div>
 
     <!-- STEP 3: STYLE -->
@@ -144,6 +184,6 @@
     </div>
 
   </div><!-- /wrap -->
-<script src="js/script.js"></script>
+ <script src="js/script.js"></script>
 </body>
 </html>
