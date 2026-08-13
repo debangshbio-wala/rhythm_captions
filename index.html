@@ -4,10 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>CaptionForge — Green Screen Video Maker</title>
+  <!-- Google Fonts (cinematic + fallback) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
- <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Bebas+Neue&family=Anton&family=Oswald:wght@300;400;600;700&family=Abril+Fatface&family=Uncial+Antiqua&family=Poppins:wght@300;400;600;700;800;900&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <div class="blob blob-1"></div>
@@ -17,14 +19,13 @@
 
     <!-- HEADER -->
     <div class="header">
-      <div class="eyebrow">Audio to Green Screen Video</div>
+      <div class="eyebrow">Audio → Green Screen Video</div>
       <h1>Caption<span>Forge</span></h1>
-      <div class="sub">Deepgram AI &bull; Noise Removal &bull; 3 Styles</div>
     </div>
 
     <!-- STEP 1: API KEY -->
     <div class="card">
-      <div class="card-label">Step 1 &mdash; Deepgram API Key</div>
+      <div class="card-label">Step 1 — Deepgram API Key</div>
       <div class="input-wrap">
         <input type="password" id="apiKey" placeholder="Paste your Deepgram key here..." />
         <button class="toggle-vis" id="toggleBtn" onclick="toggleKey()">SHOW</button>
@@ -33,13 +34,13 @@
       <div class="hint">
         No key?
         <a href="https://console.deepgram.com/signup" target="_blank" rel="noopener">Get one free at Deepgram</a>
-        &mdash; free tier is enough.
+        — free tier is enough.
       </div>
     </div>
 
     <!-- STEP 2: AUDIO UPLOAD -->
     <div class="card">
-      <div class="card-label">Step 2 &mdash; Upload Audio / Video</div>
+      <div class="card-label">Step 2 — Upload Audio / Video</div>
       <div class="file-zone" id="fileZone">
         <input type="file" id="audioFile" accept="audio/*,video/*,.mp3,.mp4,.wav,.m4a,.ogg,.flac" />
         <span class="file-icon" id="fileIcon">&#9099;</span>
@@ -52,7 +53,7 @@
 
     <!-- STEP 2b: LANGUAGE -->
     <div class="card">
-      <div class="card-label">Step 2b &mdash; Song Language</div>
+      <div class="card-label">Step 2b — Song Language</div>
       <div class="lang-grid" id="langGrid">
         <div class="lang-btn active" data-lang="auto" onclick="setLang(this)">
           <div class="lang-icon">&#9670;</div>
@@ -79,64 +80,89 @@
           <div class="lang-lbl">French</div>
           <div class="lang-sub">FR</div>
         </div>
-        <div class="lang-btn" data-lang="ko" onclick="setLang(this)">
+        <div class="lang-btn" data-lang="hinglish" onclick="setLang(this)">
           <div class="lang-icon">&#9670;</div>
-          <div class="lang-lbl">Korean</div>
-          <div class="lang-sub">한국어</div>
+          <div class="lang-lbl">Hinglish <span class="badge-new">new</span></div>
+          <div class="lang-sub">हिंग्लिश</div>
         </div>
       </div>
-      <div class="hint" style="margin-top:10px;">
-        Using <strong style="color:var(--accent)">Whisper Large</strong> model — handles singing, accents, and mixed languages.
+      <div class="hint" style="margin-top:6px;">
+        Using <strong style="color:var(--accent)">Whisper Large</strong> — handles singing, accents, mixed languages.
+        <span style="display:block;font-size:.6rem;color:var(--muted);margin-top:2px;">Hinglish: Hindi spoken, Roman script captions</span>
       </div>
     </div>
 
     <!-- STEP 3: STYLE -->
     <div class="card">
-      <div class="card-label">Step 3 &mdash; Caption Style</div>
+      <div class="card-label">Step 3 — Caption Style</div>
       <div class="styles">
-
+        <!-- Classic -->
         <div class="style-btn active" data-style="classic" onclick="setStyle(this)">
-          <div class="style-preview" style="background:#000; color:#fff; font-family:'Arial Black',Arial; text-shadow:none;">
-            LYRIC
-          </div>
+          <div class="style-preview" style="background:#000;color:#fff;font-family:'Arial Black',Arial;text-shadow:none;font-size:.7rem;">LYRIC</div>
           <div class="style-name">CLASSIC</div>
         </div>
-
+        <!-- Neon -->
         <div class="style-btn" data-style="neon" onclick="setStyle(this)">
-          <div class="style-preview" style="background:#0a0010; color:#e040fb; text-shadow:0 0 12px #e040fb, 0 0 28px #e040fb;">
-            LYRIC
-          </div>
+          <div class="style-preview" style="background:#0a0010;color:#e040fb;text-shadow:0 0 12px #e040fb,0 0 28px #e040fb;font-size:.7rem;">LYRIC</div>
           <div class="style-name">NEON</div>
         </div>
-
+        <!-- Fire -->
         <div class="style-btn" data-style="fire" onclick="setStyle(this)">
-          <div class="style-preview" style="background:#0d0500; color:#ff9900; text-shadow:0 0 10px #ff4400, 0 0 24px #ff2200; font-style:italic;">
-            LYRIC
-          </div>
+          <div class="style-preview" style="background:#0d0500;color:#ff9900;text-shadow:0 0 10px #ff4400,0 0 24px #ff2200;font-style:italic;font-size:.7rem;">LYRIC</div>
           <div class="style-name">FIRE</div>
         </div>
-
+        <!-- Minimal -->
         <div class="style-btn" data-style="clean" onclick="setStyle(this)">
-          <div class="style-preview" style="background:linear-gradient(135deg,#1a1a2e,#0f3460); color:#e0f7fa; font-weight:300; letter-spacing:.08em;">
-            lyric
-          </div>
+          <div class="style-preview" style="background:linear-gradient(135deg,#1a1a2e,#0f3460);color:#e0f7fa;font-weight:300;letter-spacing:.08em;font-size:.7rem;">lyric</div>
           <div class="style-name">MINIMAL</div>
         </div>
-
+        <!-- Retro -->
         <div class="style-btn" data-style="retro" onclick="setStyle(this)">
-          <div class="style-preview" style="background:#1a1200; color:#f5c518; font-family:Georgia,serif; font-style:italic;">
-            Lyric
-          </div>
+          <div class="style-preview" style="background:#1a1200;color:#f5c518;font-family:Georgia,serif;font-style:italic;font-size:.7rem;">Lyric</div>
           <div class="style-name">RETRO</div>
         </div>
-
+        <!-- Outline -->
         <div class="style-btn" data-style="bold" onclick="setStyle(this)">
-          <div class="style-preview" style="background:#0a0a0a; color:#fff; -webkit-text-stroke:2px #ff5c72; font-weight:900; letter-spacing:-.02em;">
-            LYRIC
-          </div>
+          <div class="style-preview" style="background:#0a0a0a;color:#fff;-webkit-text-stroke:2px #ff5c72;font-weight:900;letter-spacing:-.02em;font-size:.7rem;">LYRIC</div>
           <div class="style-name">OUTLINE</div>
         </div>
+        <!-- Cinematic (NEW) -->
+        <div class="style-btn" data-style="cinematic" onclick="setStyle(this)">
+          <div class="style-preview" style="background:#0a0800;color:#f5d742;font-family:'Cinzel',serif;font-weight:700;letter-spacing:.12em;text-shadow:0 0 20px rgba(245,215,66,.3),0 4px 12px rgba(0,0,0,.8);font-size:.65rem;">LYRIC</div>
+          <div class="style-name">CINEMATIC <span class="badge-new">new</span></div>
+        </div>
+        <!-- Mixed (NEW) -->
+        <div class="style-btn" data-style="mixed" onclick="setStyle(this)">
+          <div class="style-preview" style="background:#0a0a14;display:flex;gap:2px;font-size:.6rem;flex-wrap:wrap;justify-content:center;padding:2px;">
+            <span style="font-family:'Cinzel',serif;color:#f5d742;font-weight:700;">MIX</span>
+            <span style="font-family:'Bebas Neue',sans-serif;color:#e040fb;font-weight:400;">ED</span>
+            <span style="font-family:'Playfair Display',serif;color:#ff9900;font-style:italic;">★</span>
+          </div>
+          <div class="style-name">MIXED <span class="badge-new">new</span></div>
+        </div>
+      </div>
+    </div>
 
+    <!-- STEP 3b: QUALITY -->
+    <div class="card">
+      <div class="card-label">Step 3b — Video Quality</div>
+      <div class="quality-grid" id="qualityGrid">
+        <div class="quality-btn active" data-quality="1080" onclick="setQuality(this)">
+          <span class="q-res">1080</span>
+          <span class="q-label">Full HD</span>
+        </div>
+        <div class="quality-btn" data-quality="720" onclick="setQuality(this)">
+          <span class="q-res">720</span>
+          <span class="q-label">Lite</span>
+        </div>
+        <div class="quality-btn" data-quality="480" onclick="setQuality(this)">
+          <span class="q-res">480</span>
+          <span class="q-label">Mobile <span style="color:var(--accent);font-size:.5rem;">new</span></span>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:6px;font-size:.6rem;">
+        Rendering happens on your device — keep tab &amp; screen on.
+        <span style="display:block;color:var(--muted);">480p is faster, smaller, and easier on older phones.</span>
       </div>
     </div>
 
@@ -159,7 +185,7 @@
 
     <!-- DOWNLOAD SECTION -->
     <div class="card dl-section" id="dlSection">
-      <div class="card-label">Step 4 &mdash; Download</div>
+      <div class="card-label">Step 4 — Download</div>
       <div class="dl-row">
         <button class="btn-dl primary" onclick="downloadVideo()">Green Screen</button>
         <button class="btn-dl" onclick="showGreenScreenNote()">Transparent Info</button>
@@ -183,7 +209,9 @@
       </a>
     </div>
 
-  </div><!-- /wrap -->
- <script src="js/script.js"></script>
+  </div>
+
+  <!-- Script -->
+  <script src="js/script.js"></script>
 </body>
 </html>
